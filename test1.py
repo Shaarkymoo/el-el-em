@@ -8,7 +8,7 @@ import ollama
 
 import requests
 
-def query_ollama(prompt, model="llama3"):
+def query_ollama(prompt, model="mixtral:8x7b"):
     response = ollama.chat(
         model=model,
         messages=[
@@ -16,7 +16,7 @@ def query_ollama(prompt, model="llama3"):
                 "You are a Kali Linux Machine capable of conversation with users."
                 "Users may talk to you normally or may ask you to perform tasks able to be performed by a command on Kali Linux CLI."
                 "You only have two kinds of replies possible, either a command or conversational sentences. You dont need to explain commands"
-                "and the user cannot see them or the results, only the you and the kernel will see them. The user will only see your conversational sentences."
+                "and the user cannot see them or the results, only you and the kernel will see them. The user will only see your conversational sentences."
                 "To execute a command, respond with:\n\nCALL: function_name(arguments)\n\n"
                 "Once you have the result, parse them and give short answers appropriately. Also, if you recieve filepaths or strings or"
                 "arguments specifically, then make sure they are not modified from your side. The only commands you currently have access to are"
@@ -38,10 +38,12 @@ def run_binwalk(filepath: str) -> str:
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.stdout.strip()
 
+
 def cat(filepath: str) -> str:
     cmd = ["wsl", "cat", filepath]
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.stdout.strip()
+
 
 TOOLS = {  
     "sha256sum": hash_file,
@@ -63,10 +65,10 @@ def agent(user_input: str):
 
         if tool_name in TOOLS:
             tool_result = TOOLS[tool_name](arg)
-            #print(tool_result)
+            print(tool_result)
             # Feed the result back into the LLM for parsing/answering
             followup = f"Agent: The result of {tool_name}({arg}) was:\n{tool_result}\n\n"
-            #print(followup)
+            print(followup)
             final_response = query_ollama(followup)
             return final_response
         else:
