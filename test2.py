@@ -134,7 +134,7 @@ def agent(user_input: str):
         if isinstance(data, dict) and "tool" in data and "args" in data:
             tool_name = data["tool"]
             args = data["args"]
-            print("Tool call detected:", tool_name, args,"\n\n")
+            #print("Tool call detected:", tool_name, args,"\n\n")
 
             if tool_name in TOOLS:
                 # Run the tool
@@ -145,7 +145,7 @@ def agent(user_input: str):
                     f"The output of {tool_name} {' '.join(args)} is:\n{tool_result}\n"
                     "Summarize this clearly for the user."
                 )
-                print("Follow-up to LLM:", followup,"\n\n")
+                #print("Follow-up to LLM:", followup,"\n\n")
 
                 final_response = query_ollama(followup)
                 return final_response
