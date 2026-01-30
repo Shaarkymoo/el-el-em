@@ -49,6 +49,8 @@ conversation = [
         - You (Natural Reply): “The SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt is 8b5f5…”
 
         By following these rules you act as a reliable digital forensics co-pilot.
+
+        
         """
     )}
 ]
@@ -117,11 +119,17 @@ def nmap_wrapper(target: str, *options):
 #Can you run nmap on this target "scanme.nmap.org" with options "connect scan, top 100 ports, moderate speed"
 #Can you run nmap on this target "scanme.nmap.org" with options "connect scan, port 80"
 
+def johnTheRipper(filepath: str, *args: str) -> str:
+    cmd = ["wsl", "john"] + list(args) + [filepath]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return (result.stdout + result.stderr).strip()
+
 TOOLS = {  
     "sha256sum": hash_file,
     "binwalk": run_binwalk,
     "cat" : cat,
-    "nmap": nmap_wrapper
+    "nmap": nmap_wrapper,
+    "john": johnTheRipper
 }
 
 # --- 4. Agent logic ---
