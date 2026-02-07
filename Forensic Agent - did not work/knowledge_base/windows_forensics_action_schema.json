@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "properties": {
+    "tool": {
+      "type": "string",
+      "enum": ["volatility3"]
+    },
+    "memory_file": {
+      "type": "string"
+    },
+    "workflow": {
+      "type": "string",
+      "description": "Name of the investigative workflow"
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["process_name", "pid"]
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "objective": {
+      "type": "string"
+    }
+  },
+  "required": ["tool", "memory_file", "plugins", "objective"]
+}
