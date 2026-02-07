@@ -102,7 +102,7 @@ def query_ollama(prompt, model="gpt-oss:20b"):
             {"role": "user", "content": prompt}
         ]
     }
-    response = requests.post(url, json=payload)
+    response = requests.post(url, json=payload) # type: ignore
     # Make sure to check for success & parse response as needed
     response.raise_for_status()
     result = response.json()
@@ -157,6 +157,6 @@ conversation = [
 
         KNOWLEDGE BASE:
         
-        """ + knowledge
+        """ + knowledge # type: ignore
     )}
 ]

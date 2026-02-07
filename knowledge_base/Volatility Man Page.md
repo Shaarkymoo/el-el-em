@@ -1,12 +1,5 @@
 ## Volatility Manual
 
-usage: vol [-h] [-c CONFIG] [--parallelism [{processes,threads,off}]] [-e EXTEND] [-p PLUGIN_DIRS] [-s SYMBOL_DIRS]
-           [-v] [-l LOG] [-o OUTPUT_DIR] [-q] [-f FILE] [--write-config] [--save-config SAVE_CONFIG] [--clear-cache]
-           [--cache-path CACHE_PATH] [--offline | -u URL] [--filters FILTERS] [--hide-columns [HIDE_COLUMNS ...]]
-           [-r RENDERER] [--single-location SINGLE_LOCATION] [--stackers [STACKERS ...]]
-           [--single-swap-locations [SINGLE_SWAP_LOCATIONS ...]]
-           PLUGIN ...
-
 usage: {"tool":"<volatility>","args":[[-h] [-c CONFIG] [--parallelism [{processes,threads,off}]] [-e EXTEND] [-p PLUGIN_DIRS] [-s SYMBOL_DIRS]
            [-v] [-l LOG] [-o OUTPUT_DIR] [-q] [-f FILE] [--write-config] [--save-config SAVE_CONFIG] [--clear-cache]
            [--cache-path CACHE_PATH] [--offline | -u URL] [--filters FILTERS] [--hide-columns [HIDE_COLUMNS ...]]

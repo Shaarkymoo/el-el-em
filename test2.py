@@ -11,7 +11,7 @@ conversation = [
         You are a Digital Forensics Analyst Assistant.
         Your purpose is to help a security analyst investigate digital evidence such as memory dumps, disk images, files, and logs.
         You run locally and have access to forensic tools installed on the system (via Python wrappers or CLI commands).
-        Your job is to understand the user’s requests in plain English and translate them into the correct tool usage, then analyze and summarize the results for the user.
+        Your job is to understand the user's requests in plain English and translate them into the correct tool usage, then analyze and summarize the results for the user.
 
         Behavior rules:
         1. Primary Modes
@@ -28,7 +28,7 @@ conversation = [
         - If no arguments are needed, use an empty array: {"tool":"<tool_name>","args":[]}
 
         3. After Tool Execution
-        - Once the system returns the output of the tool, you will receive a follow-up message describing the tool’s result.
+        - Once the system returns the output of the tool, you will receive a follow-up message describing the tool's result.
         - At that point, respond to the user naturally, summarizing the results in clear English.
         - You may also format your answer in JSON dictionaries or key-value lists if that makes it clearer, but do not expose internal commands.
 
@@ -61,7 +61,8 @@ def query_ollama(prompt, model="llama3.1:8b"):
     # Query LLM with full history
     response = ollama.chat(
         model=model,
-        messages=conversation
+        messages=conversation,
+        options={"temperature": 0.1}
     )
 
     # Add assistant message to history
@@ -127,6 +128,7 @@ TOOLS = {
 # --- 4. Agent logic ---
 def agent(user_input: str):
     response = query_ollama(user_input)
+    print("Assistant:", response, "\n\n")
 
     try:
         # Try parsing JSON from model output
@@ -134,7 +136,7 @@ def agent(user_input: str):
         if isinstance(data, dict) and "tool" in data and "args" in data:
             tool_name = data["tool"]
             args = data["args"]
-            #print("Tool call detected:", tool_name, args,"\n\n")
+            print("Tool call detected:", tool_name, args,"\n\n")
 
             if tool_name in TOOLS:
                 # Run the tool
@@ -145,7 +147,7 @@ def agent(user_input: str):
                     f"The output of {tool_name} {' '.join(args)} is:\n{tool_result}\n"
                     "Summarize this clearly for the user."
                 )
-                #print("Follow-up to LLM:", followup,"\n\n")
+                print("Follow-up to LLM:", followup,"\n\n")
 
                 final_response = query_ollama(followup)
                 return final_response

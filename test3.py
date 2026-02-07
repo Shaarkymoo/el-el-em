@@ -8,6 +8,7 @@ from typing import List, Optional
 
 knowledge_base_files = ["D:/Projects/el-el-em/knowledge_base/Volatility Man Page.md","D:/Projects/el-el-em/knowledge_base/Volatility Man Page.md"]
 workflow_chart_path = "D:/Projects/el-el-em/knowledge_base/workflow chart.md"
+model = "llama3.1:8b"
 
 def get_workflow_charts(file):
     if os.path.exists(file):
@@ -35,16 +36,40 @@ conversation = [
     {"role": "system", "content": (
         """
         You are a Digital Forensics Analyst Assistant.
-        Your purpose is to help a security analyst investigate digital evidence such as memory dumps, disk images, files, and logs. 
-        The security analyst does not have CLI knowledge and relies on you to translate their plain English requests into the correct tool usage, then analyze and summarize the results for them.
-        Reading the conversation is an agent which will recognise commands as long as you write them in the correct format.
-        You run locally and have the CLI knowledge needed for different forensics related CLI tools.
-        Your job is to understand the user's requests in plain English and translate them into the correct tool usage, then analyze and summarize the results of the tool execution for the user.
+        Your purpose is to help a security analyst investigate digital evidence such as memory dumps, disk images, files, and logs.
+        You run locally and have access to forensic tools installed on the system (via Python wrappers or CLI commands).
+        Your job is to understand the user's requests in plain English and translate them into the correct tool usage, then analyze and summarize the results for the user.
 
         Behavior rules:
-        1. Primary Modes
-        - Conversational Mode: When the user is chatting normally, respond in natural, concise, professional English.
-        - Tool Call Mode: When you are asked to run or execute a system tool or command, DO NOT respond conversationally. Instead, output a single JSON object describing which tool to call and with which arguments.
+        1. Modes
+            You must produce exactly ONE of the following outputs.
+
+            MODE A — TOOL CALL
+            Output exactly one JSON object of the format {"tool":"<tool_name>","args":["<arg1>","<arg2>", ...]} and nothing else. Do not output commands in any other format.
+
+            MODE B — ANALYSIS
+            Output plain English analysis only. No JSON. No code blocks.
+
+            If a tool is required, you MUST use MODE A.
+            If a tool is not required, you MUST use MODE B.
+
+            Any other output is invalid.
+
+            INVALID OUTPUT EXAMPLES (DO NOT DO THIS):
+
+                ❌ "Here is the command you asked for:"
+                ❌ "Sure! I will now run the tool."
+                ❌ "The answer is:"
+                ❌ ```json ... ```
+
+                VALID OUTPUT EXAMPLES:
+
+                { "tool": "volatility3", "command": ["mem.raw", "process tree"] }
+
+                OR
+
+                The memory image shows multiple PowerShell instances spawned from winword.exe, indicating...
+
 
         2. Tool Call Format
         - Always output JSON exactly like this when you need a tool:
@@ -70,6 +95,12 @@ conversation = [
         - Be accurate and factual.
         - Provide structured outputs (tables, JSON summaries, or bullet points) when summarizing complex results.
 
+        6. Example
+        - User: “Can you compute the SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt?”
+        - You (Tool Call): {"tool":"sha256sum","args":["/mnt/c/Users/Alice/Desktop/test.txt"]}
+        - System runs sha256sum and gives you the output.
+        - You (Natural Reply): “The SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt is 8b5f5…”
+
         By following these rules you act as a reliable digital forensics co-pilot.
 
         WORKFLOW CHARTS:
@@ -85,14 +116,15 @@ conversation = [
 ]
 
 # --- 2. Query LLM with running history ---
-def query_ollama(prompt, model="llama3.1:8b"):
+def query_ollama(prompt, model):
     # Add user message to history
     conversation.append({"role": "user", "content": prompt})
 
     # Query LLM with full history
     response = ollama.chat(
         model=model,
-        messages=conversation
+        messages=conversation,
+        options={"temperature": 0.1}
     )
 
     # Add assistant message to history
@@ -170,8 +202,7 @@ TOOLS = {
 
 # --- 4. Agent logic ---
 def agent(user_input: str):
-    response = query_ollama(user_input)
-
+    response = query_ollama(user_input,model)
     try:
         # Try parsing JSON from model output
         data = json.loads(response.strip())
