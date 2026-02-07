@@ -2,34 +2,62 @@ import subprocess
 import ollama
 import json
 from nmap_driver import nmap_scan
+import os
+from volat_driver import volatility_scan
 from typing import List, Optional
+
+knowledge_base_files = ["D:/Projects/el-el-em/knowledge_base/Volatility Man Page.md"]
+workflow_chart_path = "D:/Projects/el-el-em/knowledge_base/workflow chart.md"
+
+def get_workflow_charts(file):
+    if os.path.exists(file):
+        with open(file, 'r', encoding='utf-8') as f:
+            return f.read()
+    else:
+        print(f"⚠️ Warning: Workflow chart file not found: {file}")
+        return ""
+
+def get_knowledge(filelist):
+    knowledge = ""
+    for filepath in filelist:
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                knowledge += f.read() + "\n\n"
+        else:
+            print(f"⚠️ Warning: Knowledge file not found: {filepath}")
+    return knowledge
+
+knowledge = get_knowledge(knowledge_base_files)
+#print(knowledge[:100])  # Print the first 1000 characters of the knowledge base for verification
 
 # --- 1. Conversation history (persistent during runtime) ---
 conversation = [
     {"role": "system", "content": (
         """
         You are a Digital Forensics Analyst Assistant.
-        Your purpose is to help a security analyst investigate digital evidence such as memory dumps, disk images, files, and logs.
-        You run locally and have access to forensic tools installed on the system (via Python wrappers or CLI commands).
-        Your job is to understand the user’s requests in plain English and translate them into the correct tool usage, then analyze and summarize the results for the user.
+        Your purpose is to help a security analyst investigate digital evidence such as memory dumps, disk images, files, and logs. 
+        The security analyst does not have CLI knowledge and relies on you to translate their plain English requests into the correct tool usage, then analyze and summarize the results for them.
+        Reading the conversation is an agent which will recognise commands as long as you write them in the correct format.
+        You run locally and have the CLI knowledge needed for different forensics related CLI tools.
+        Your job is to understand the user's requests in plain English and translate them into the correct tool usage, then analyze and summarize the results of the tool execution for the user.
 
         Behavior rules:
         1. Primary Modes
         - Conversational Mode: When the user is chatting normally, respond in natural, concise, professional English.
-        - Tool Call Mode: When you need to run a system tool, DO NOT respond conversationally. Instead, output a single JSON object describing which tool to call and with which arguments.
+        - Tool Call Mode: When you are asked to run or execute a system tool or command, DO NOT respond conversationally. Instead, output a single JSON object describing which tool to call and with which arguments.
 
         2. Tool Call Format
         - Always output JSON exactly like this when you need a tool:
             {"tool":"<tool_name>","args":["<arg1>","<arg2>", ...]}
         - No extra text, no markdown, no explanations — just the JSON.
-        - <tool_name> corresponds to the known tools (e.g., "sha256sum", "binwalk", "cat", "strings", "volatility", etc.).
+        - <tool_name> corresponds to the known tools given in the knowledge base only. You may refer to the knowledge base as well as the workflow chart for which tools are available and their usage.
         - Arguments must be passed as a JSON array of strings exactly as received from the user. Do not modify paths or filenames. 
-        - Do not add or remove arguments unless specifically instructed by the user. Use only that which is necessary for the tool to run.
+        - Do not add or remove arguments like flags or plugins unless specifically instructed by the user. Use only that which is necessary for the tool to run within the users request.
         - If no arguments are needed, use an empty array: {"tool":"<tool_name>","args":[]}
 
         3. After Tool Execution
-        - Once the system returns the output of the tool, you will receive a follow-up message describing the tool’s result.
-        - At that point, respond to the user naturally, summarizing the results in clear English.
+        - Once the system returns the output of the tool, you will receive a follow-up message describing the tools result.
+        - At that point, respond to the user naturally, summarizing the results in clear English. You do not need to explain the commands.
         - You may also format your answer in JSON dictionaries or key-value lists if that makes it clearer, but do not expose internal commands.
 
         4. Consistency & Safety
@@ -42,16 +70,17 @@ conversation = [
         - Be accurate and factual.
         - Provide structured outputs (tables, JSON summaries, or bullet points) when summarizing complex results.
 
-        6. Example
-        - User: “Can you compute the SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt?”
-        - You (Tool Call): {"tool":"sha256sum","args":["/mnt/c/Users/Alice/Desktop/test.txt"]}
-        - System runs sha256sum and gives you the output.
-        - You (Natural Reply): “The SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt is 8b5f5…”
-
         By following these rules you act as a reliable digital forensics co-pilot.
 
-        
+        WORKFLOW CHARTS:
         """
+        +   #+ workflow_charts +
+
+        """
+
+        \n \nKNOWLEDGE BASE: \n\n
+        
+        """ + knowledge
     )}
 ]
 
@@ -119,6 +148,12 @@ def nmap_wrapper(target: str, *options):
 #Can you run nmap on this target "scanme.nmap.org" with options "connect scan, top 100 ports, moderate speed"
 #Can you run nmap on this target "scanme.nmap.org" with options "connect scan, port 80"
 
+def volatility_wrapper(memory_file: str, *options) -> str:
+    options_str = " ".join(options) if options else None
+    cmd, output = volatility_scan(memory_file, options=options_str, use_wsl=True)
+    return f"Command run: {' '.join(cmd)}\n\n{output}"
+#can you run volatility on this memory dump "memory.dmp"
+
 def johnTheRipper(filepath: str, *args: str) -> str:
     cmd = ["wsl", "john"] + list(args) + [filepath]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -129,7 +164,8 @@ TOOLS = {
     "binwalk": run_binwalk,
     "cat" : cat,
     "nmap": nmap_wrapper,
-    "john": johnTheRipper
+    "john": johnTheRipper,
+    "volatility": volatility_wrapper,
 }
 
 # --- 4. Agent logic ---
@@ -142,7 +178,7 @@ def agent(user_input: str):
         if isinstance(data, dict) and "tool" in data and "args" in data:
             tool_name = data["tool"]
             args = data["args"]
-            #print("Tool call detected:", tool_name, args,"\n\n")
+            print("Tool call detected:", tool_name, args,"\n\n")
 
             if tool_name in TOOLS:
                 # Run the tool
@@ -153,7 +189,7 @@ def agent(user_input: str):
                     f"The output of {tool_name} {' '.join(args)} is:\n{tool_result}\n"
                     "Summarize this clearly for the user."
                 )
-                #print("Follow-up to LLM:", followup,"\n\n")
+                print("Follow-up to LLM:", followup,"\n\n")
 
                 final_response = query_ollama(followup)
                 return final_response
