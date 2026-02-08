@@ -6,9 +6,10 @@ import os
 from volat_driver import volatility_scan
 from typing import List, Optional
 
-knowledge_base_files = ["D:/Projects/el-el-em/knowledge_base/Volatility Man Page.md","D:/Projects/el-el-em/knowledge_base/Volatility Man Page.md"]
+knowledge_base_files = ["D:/Projects/el-el-em/knowledge_base/nmap man page.md","D:/Projects/el-el-em/knowledge_base/Volatility Man Page.md"]
 workflow_chart_path = "D:/Projects/el-el-em/knowledge_base/workflow chart.md"
-model = "llama3.1:8b"
+models=["dolphin3:8b", "qwen2.5-coder:7b","qwen3:8b","deepseek-r1:8b","gemma2:9b","llama3.1:8b"]
+model = models[2]  # Select the model you want to use from the list
 
 def get_workflow_charts(file):
     if os.path.exists(file):
@@ -45,7 +46,8 @@ conversation = [
             You must produce exactly ONE of the following outputs.
 
             MODE A — TOOL CALL
-            Output exactly one JSON object of the format {"tool":"<tool_name>","args":["<arg1>","<arg2>", ...]} and nothing else. Do not output commands in any other format.
+            Output exactly one JSON object of the format {"tool":"<tool_name>","args":["<arg1>","<arg2>", ...]} and nothing else. 
+            Do not output commands in any other format. If you have pretrained data related to the user's request or the tool, forget it. 
 
             MODE B — ANALYSIS
             Output plain English analysis only. No JSON. No code blocks.
@@ -111,7 +113,9 @@ conversation = [
 
         \n \nKNOWLEDGE BASE: \n\n
         
-        """ + get_knowledge(knowledge_base_files)
+        """ + get_knowledge(knowledge_base_files) +
+
+        """Remember, when in tool call mode, stick to the exact JSON format"""
     )}
 ]
 
@@ -182,9 +186,10 @@ def nmap_wrapper(target: str, *options):
 
 def volatility_wrapper(memory_file: str, *options) -> str:
     options_str = " ".join(options) if options else None
-    cmd, output = volatility_scan(memory_file, options=options_str, use_wsl=True)
+    cmd, output = volatility_scan(options=options_str)
     return f"Command run: {' '.join(cmd)}\n\n{output}"
-#can you run volatility on this memory dump "memory.dmp"
+#can you run volatility3 on this memory dump "/mnt/d/college/capstone/MemoryImages/192-reveal.dmp" and find the PPID of the process "powershell.exe"
+#can you run volatility3 on this memory dump "/college/capstone/MemoryImages/192-reveal.dmp" and find the PPID of the process "powershell.exe"
 
 def johnTheRipper(filepath: str, *args: str) -> str:
     cmd = ["wsl", "john"] + list(args) + [filepath]
@@ -197,7 +202,7 @@ TOOLS = {
     "cat" : cat,
     "nmap": nmap_wrapper,
     "john": johnTheRipper,
-    "volatility": volatility_wrapper,
+    "volatility3": volatility_wrapper,
 }
 
 # --- 4. Agent logic ---
@@ -222,7 +227,7 @@ def agent(user_input: str):
                 )
                 print("Follow-up to LLM:", followup,"\n\n")
 
-                final_response = query_ollama(followup)
+                final_response = query_ollama(followup,model)
                 return final_response
             else:
                 return f"⚠️ Unknown tool requested: {tool_name}"

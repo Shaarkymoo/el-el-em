@@ -100,12 +100,10 @@ def _parse_plugin_token(token: str) -> str:
 # ==========================
 
 def volatility_scan(
-    memory_file: str,
-    plugin: Union[str, List[str]],
     options: Optional[Union[str, List[str]]] = None,
+    #volatility_path: str = r"./mnt/d/Projects/el-el-em/Volatility/venv/Scripts/vol.exe",
     volatility_path: str = r"D:/Projects/el-el-em/Volatility/venv/Scripts/vol.exe",
-    use_wsl: bool = True,
-    timeout: Optional[int] = None,
+    use_wsl: bool = False,
 ) -> Tuple[List[str], str]:
     """
     Run a Volatility 3 plugin against a memory image.
@@ -122,23 +120,12 @@ def volatility_scan(
     (command_list, stdout+stderr)
     """
 
-    mem_path = _validate_memory_file(memory_file)
-
-    # Resolve plugin
-    if isinstance(plugin, list):
-        # if list, first element must resolve to plugin
-        plugin_name = _parse_plugin_token(plugin[0])
-        plugin_args = plugin[1:]
-    else:
-        plugin_name = _parse_plugin_token(plugin)
-        plugin_args = []
-
     # Build command
     cmd: List[str] = []
     if use_wsl:
         cmd.append("wsl")
 
-    cmd.extend([volatility_path,"-f", str(mem_path), plugin_name])
+    cmd.extend([volatility_path,"-f"])
 
     # Parse options
     if options:
@@ -151,16 +138,10 @@ def volatility_scan(
 
         cmd.extend(opt_tokens)
 
-    # Add plugin-specific args (e.g. pid)
-    if plugin_args:
-        cmd.extend(plugin_args)
-
     # Execute
     try: 
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        proc = subprocess.run(cmd, capture_output=True, text=True)
         combined = proc.stdout + ("\n" + proc.stderr if proc.stderr else "")
-    except subprocess.TimeoutExpired as e:
-        combined = f"Volatility timed out after {timeout} seconds.\n{e.stdout}\n{e.stderr}"
     except FileNotFoundError as e:
         raise RuntimeError(f"Volatility not found at {volatility_path}. Error: {e}")
     except Exception as e:
@@ -181,8 +162,6 @@ if __name__ == "__main__":
 
     # Malfind with PID
     print(volatility_scan(
-        testfile1,
-        plugin="malicious processes",
-        #options="--pid 1234",
+        options="windows.pslist",
         use_wsl=False
     ))
