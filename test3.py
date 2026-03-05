@@ -9,7 +9,7 @@ from typing import List, Optional
 knowledge_base_files = ["D:/Projects/el-el-em/knowledge_base/nmap man page.md","D:/Projects/el-el-em/knowledge_base/Volatility Man Page.md"]
 workflow_chart_path = "D:/Projects/el-el-em/knowledge_base/workflow chart.md"
 models=["dolphin3:8b", "qwen2.5-coder:7b","qwen3:8b","deepseek-r1:8b","gemma2:9b","llama3.1:8b"]
-model = models[2]  # Select the model you want to use from the list
+model = models[5]  # Select the model you want to use from the list
 
 def get_workflow_charts(file):
     if os.path.exists(file):

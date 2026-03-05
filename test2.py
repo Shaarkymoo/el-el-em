@@ -128,7 +128,7 @@ TOOLS = {
 # --- 4. Agent logic ---
 def agent(user_input: str):
     response = query_ollama(user_input)
-    print("Assistant:", response, "\n\n")
+    #print("Assistant:", response, "\n\n")
 
     try:
         # Try parsing JSON from model output
@@ -136,7 +136,7 @@ def agent(user_input: str):
         if isinstance(data, dict) and "tool" in data and "args" in data:
             tool_name = data["tool"]
             args = data["args"]
-            print("Tool call detected:", tool_name, args,"\n\n")
+            #print("Tool call detected:", tool_name, args,"\n\n")
 
             if tool_name in TOOLS:
                 # Run the tool

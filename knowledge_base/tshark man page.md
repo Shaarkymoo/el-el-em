@@ -1,34 +1,10 @@
 ## tshark man page
 
-Name
-
 tshark - Dump and analyze network traffic
-Synopsis
 
+Synonpsis:
 tshark [ -a <capture autostop condition> ] ... [ -b <capture ring buffer option>] ... [ -B <capture buffer size (Win32 only)> ] [ -c <capture packet count> ] [ -C <configuration profile> ] [ -d <layer type>==<selector>,<decode-as protocol> ] [ -D ] [ -e <field> ] [ -E <field print option> ] [ -f <capture filter> ] [ -F <file format> ] [ -h ] [ -i <capture interface>|- ] [ -K <keytab> ] [ -l ] [ -L ] [ -n ] [ -N <name resolving flags> ] [ -o <preference setting> ] ... [ -p ] [ -q ] [ -r <infile> ] [ -R <read (display) filter> ] [ -s <capture snaplen> ] [ -S ] [ -t ad|a|r|d|dd|e ] [ -T pdml|psml|ps|text|fields ] [ -v ] [ -V ] [ -w <outfile>|- ] [ -x ] [ -X <eXtension option>] [ -y <capture link type> ] [ -z <statistics> ] [ <capture filter> ]
-Description
 
-TShark is a network protocol analyzer. It lets you capture packet data from a live network, or read packets from a previously saved capture file, either printing a decoded form of those packets to the standard output or writing the packets to a file. TShark's native capture file format is libpcap format, which is also the format used by tcpdump and various other tools.
-
-Without any options set, TShark will work much like tcpdump. It will use the pcap library to capture traffic from the first available network interface and displays a summary line on stdout for each received packet.
-
-TShark is able to detect, read and write the same capture files that are supported by Wireshark. The input file doesn't need a specific filename extension; the file format and an optional gzip compression will be automatically detected. Near the beginning of the DESCRIPTION section of wireshark(1) or <http://www.wireshark.org/docs/man-pages/wireshark.html> is a detailed description of the way Wireshark handles this, which is the same way Tshark handles this.
-
-Compressed file support uses (and therefore requires) the zlib library. If the zlib library is not present, TShark will compile, but will be unable to read compressed files.
-
-If the -w option is not specified, TShark writes to the standard output the text of a decoded form of the packets it captures or reads. If the -w option is specified, TShark writes to the file specified by that option the raw data of the packets, along with the packets' time stamps.
-
-When writing a decoded form of packets, TShark writes, by default, a summary line containing the fields specified by the preferences file (which are also the fields displayed in the packet list pane in Wireshark), although if it's writing packets as it captures them, rather than writing packets from a saved capture file, it won't show the "frame number" field. If the -V option is specified, it writes instead a view of the details of the packet, showing all the fields of all protocols in the packet.
-
-If you want to write the decoded form of packets to a file, run TShark without the -w option, and redirect its standard output to the file (do not use the -w option).
-
-When writing packets to a file, TShark, by default, writes the file in libpcap format, and writes all of the packets it sees to the output file. The -F option can be used to specify the format in which to write the file. This list of available file formats is displayed by the -F flag without a value. However, you can't specify a file format for a live capture.
-
-Read filters in TShark, which allow you to select which packets are to be decoded or written to a file, are very powerful; more fields are filterable in TShark than in other protocol analyzers, and the syntax you can use to create your filters is richer. As TShark progresses, expect more and more protocol fields to be allowed in read filters.
-
-Packet capturing is performed with the pcap library. The capture filter syntax follows the rules of the pcap library. This syntax is different from the read filter syntax. A read filter can also be specified when capturing, and only packets that pass the read filter will be displayed or saved to the output file; note, however, that capture filters are much more efficient than read filters, and it may be more difficult for TShark to keep up with a busy network if a read filter is specified for a live capture.
-
-A capture or read filter can either be specified with the -f or -R option, respectively, in which case the entire filter expression must be specified as a single argument (which means that if it contains spaces, it must be quoted), or can be specified with command-line arguments after the option arguments, in which case all the arguments after the filter arguments are treated as a filter expression. Capture filters are supported only when doing a live capture; read filters are supported when doing a live capture and when reading a capture file, but require TShark to do more work when filtering, so you might be more likely to lose packets under heavy load if you're using a read filter. If the filter is specified with command-line arguments after the option arguments, it's a capture filter if a capture is being done (i.e., if no -r option was specified) and a read filter if a capture file is being read (i.e., if a -r option was specified).
 Options
 
 -a <capture autostop condition>
