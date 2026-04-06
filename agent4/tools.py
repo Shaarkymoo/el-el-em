@@ -52,7 +52,6 @@ def _wsl_run(cmd: list[str]) -> str:
     result = subprocess.run(["wsl"] + cmd, capture_output=True, text=True)
     return (result.stdout + result.stderr).strip()
 
-
 # ---------------------------------------------------------------------------
 # Tool definitions
 # ---------------------------------------------------------------------------
@@ -61,25 +60,24 @@ def _wsl_run(cmd: list[str]) -> str:
 def hash_file(filepath: str, *args: str) -> str:
     """Compute SHA-256 hash of a file."""
     return _wsl_run(["sha256sum", *args, filepath])
-
+#can you tell me the sha256 hash of this file "/mnt/c/Users/Shaarav/Desktop/Test.txt"   
 
 @register_tool("binwalk")
 def run_binwalk(filepath: str, *args: str) -> str:
     """Analyse a binary file with binwalk."""
     return _wsl_run(["binwalk", *args, filepath])
-
+#can you run binwalk on this file "/mnt/c/Users/Shaarav/Desktop/Test.txt" 
 
 @register_tool("cat")
 def cat(filepath: str, *args: str) -> str:
     """Print file contents."""
     return _wsl_run(["cat", *args, filepath])
-
+#can you read this file "/mnt/c/Users/Shaarav/Desktop/Test.txt"
 
 @register_tool("john")
 def john_the_ripper(filepath: str, *args: str) -> str:
     """Run John the Ripper on a hash file."""
     return _wsl_run(["john", *args, filepath])
-
 
 @register_tool("nmap")
 def nmap_wrapper(target: str, *options: str) -> str:
@@ -88,7 +86,10 @@ def nmap_wrapper(target: str, *options: str) -> str:
     options_str = " ".join(options) if options else None
     cmd, output = nmap_scan(target, options=options_str, use_wsl=True)
     return f"Command run: {' '.join(cmd)}\n\n{output}"
-
+#can you run nmap on this target "scanme.nmap.org" with options "syn scan, ports:22,80"
+#Can you run nmap on this target "scanme.nmap.org" with options "connect scan, ports 1-200, moderate speed"
+#Can you run nmap on this target "scanme.nmap.org" with options "connect scan, top 100 ports, moderate speed"
+#Can you run nmap on this target "scanme.nmap.org" with options "connect scan, port 80"
 
 @register_tool("volatility3")
 def volatility_wrapper(memory_file: str, *options: str) -> str:
@@ -97,3 +98,4 @@ def volatility_wrapper(memory_file: str, *options: str) -> str:
     options_str = " ".join(options) if options else None
     cmd, output = volatility_scan(options=options_str)
     return f"Command run: {' '.join(cmd)}\n\n{output}"
+#can you run volatility3 on this windows memory dump "/college/capstone/MemoryImages/192-reveal.dmp" and options "windows.pslist"

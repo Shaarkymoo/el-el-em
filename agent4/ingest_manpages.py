@@ -23,7 +23,7 @@ TOOLS_TO_INGEST = {
     "nmap":       [],
     "john":       [],
     "volatility3": [
-        r"D:\Projects\el-el-em\agent4\knowledge_base\manpages\volatility_plugins.md",
+        r"D:\Projects\el-el-em\knowledge_base\Volatility Man Page.md",
         #"knowledge_base/volatility_usage.txt",
     ],
 }

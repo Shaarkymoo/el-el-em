@@ -189,12 +189,13 @@ def volatility_wrapper(memory_file: str, *options) -> str:
     cmd, output = volatility_scan(options=options_str)
     return f"Command run: {' '.join(cmd)}\n\n{output}"
 #can you run volatility3 on this memory dump "/mnt/d/college/capstone/MemoryImages/192-reveal.dmp" and find the PPID of the process "powershell.exe"
-#can you run volatility3 on this memory dump "/college/capstone/MemoryImages/192-reveal.dmp" and find the PPID of the process "powershell.exe"
+#can you run volatility3 on this windows memory dump "/college/capstone/MemoryImages/192-reveal.dmp" and find the PPID of the process "powershell.exe"
 
 def johnTheRipper(filepath: str, *args: str) -> str:
     cmd = ["wsl", "john"] + list(args) + [filepath]
     result = subprocess.run(cmd, capture_output=True, text=True)
     return (result.stdout + result.stderr).strip()
+#can you use john the ripper to crack the hashes in this file "/mnt/c/Users/Shaarav/Desktop/hashtest2.txt" using this wordlist "/mnt/c/Users/Shaarav/Desktop/password.txt" in the Raw-MD5 format
 
 TOOLS = {  
     "sha256sum": hash_file,

@@ -34,14 +34,12 @@ MODEL = MODELS[5]
 # Intent classification — keyword-based, no LLM call needed
 # ---------------------------------------------------------------------------
 
-# Words that strongly suggest the user wants to RUN a tool
 _TOOL_INTENT_KEYWORDS = re.compile(
     r"\b(run|scan|hash|analyse|analyze|execute|check|compute|inspect|dump|"
     r"extract|crack|enumerate|fingerprint|identify|detect)\b",
     re.IGNORECASE,
 )
 
-# Words that strongly suggest plain conversation
 _CHAT_INTENT_KEYWORDS = re.compile(
     r"\b(hi|hello|hey|thanks|thank you|what can you|what do you|how are you|"
     r"who are you|help me understand|explain|what is|what are|how does|"
@@ -50,15 +48,6 @@ _CHAT_INTENT_KEYWORDS = re.compile(
 )
 
 def _needs_rag(user_input: str) -> bool:
-    """
-    Return True only when the input looks like an actionable tool request
-    that would benefit from man page context.
-
-    Logic:
-      - If it matches chat keywords and NOT tool keywords → no RAG
-      - If it matches tool keywords → RAG
-      - Ambiguous short messages (< 6 words, no path) → no RAG
-    """
     has_tool_intent = bool(_TOOL_INTENT_KEYWORDS.search(user_input))
     has_chat_intent = bool(_CHAT_INTENT_KEYWORDS.search(user_input))
     has_path        = "/" in user_input or "\\" in user_input or "." in user_input.split()[-1]
@@ -67,7 +56,6 @@ def _needs_rag(user_input: str) -> bool:
         return False
     if has_tool_intent or has_path:
         return True
-    # Short vague messages
     if len(user_input.split()) < 6:
         return False
     return True
@@ -96,6 +84,7 @@ SYSTEM_PROMPT = """
 
             If a tool is required, you MUST use MODE A.
             If a tool is not required, you MUST use MODE B.
+            Do not specify which mode you are using — just output the content exactly as required by the mode.
 
             Any other output is invalid.
 
@@ -105,6 +94,9 @@ SYSTEM_PROMPT = """
                 ❌ "Sure! I will now run the tool."
                 ❌ "The answer is:"
                 ❌ ```json ... ```
+                ❌ "To investigate this, you can run volatility3 with the following command: volatility3 -f mem.raw windows.pslist"
+                ❌ "The volatility command you need is: {'tool': 'volatility3', 'args': ['mem.raw', 'windows.pslist']}"
+                ❌ "MODE A: {'tool': 'volatility3', 'args': ['mem.raw', 'windows.pslist']}"
 
                 VALID OUTPUT EXAMPLES:
 
@@ -114,36 +106,29 @@ SYSTEM_PROMPT = """
 
                 The memory image shows multiple PowerShell instances spawned from winword.exe, indicating...
 
-
         2. Tool Call Format
         - Always output JSON exactly like this when you need a tool:
             {"tool":"<tool_name>","args":["<arg1>","<arg2>", ...]}
         - No extra text, no markdown, no explanations — just the JSON.
-        - <tool_name> corresponds to the known tools given in the knowledge base only. You may refer to the knowledge base as well as the workflow chart for which tools are available and their usage.
-        - Arguments must be passed as a JSON array of strings exactly as received from the user. Do not modify paths or filenames. 
-        - Do not add or remove arguments like flags or plugins unless specifically instructed by the user. Use only that which is necessary for the tool to run within the users request.
+        - Arguments must be passed as a JSON array of strings exactly as received from the user.
+        - Do not hallucinate or add or remove arguments like flags or plugins unless specifically instructed by the user.
         - If no arguments are needed, use an empty array: {"tool":"<tool_name>","args":[]}
+        - The only tools you have access to are: sha256sum, binwalk, cat, nmap, john, volatility3. Do not call any other tools.
 
         3. After Tool Execution
         - Once the system returns the output of the tool, you will receive a follow-up message describing the tools result.
-        - At that point, respond to the user naturally, summarizing the results in clear English. You do not need to explain the commands.
-        - You may also format your answer in JSON dictionaries or key-value lists if that makes it clearer, but do not expose internal commands.
+        - At that point, respond to the user naturally, summarizing the results in clear English.
 
         4. Consistency & Safety
         - Do not hallucinate tools or paths; only use tools you know.
         - Do not modify file paths or command arguments provided by the user.
         - If a requested action cannot be performed, explain why in natural language.
 
-        5. Your style
-        - Be concise but informative.
-        - Be accurate and factual.
-        - Provide structured outputs (tables, JSON summaries, or bullet points) when summarizing complex results.
-
-        6. Example
-        - User: “Can you compute the SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt?”
+        5. Example
+        - User: "Can you compute the SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt?"
         - You (Tool Call): {"tool":"sha256sum","args":["/mnt/c/Users/Alice/Desktop/test.txt"]}
         - System runs sha256sum and gives you the output.
-        - You (Natural Reply): “The SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt is 8b5f5…”
+        - You (Natural Reply): "The SHA256 hash of /mnt/c/Users/Alice/Desktop/test.txt is 8b5f5…"
 """
 
 # ---------------------------------------------------------------------------
@@ -184,10 +169,6 @@ def _query_llm(user_message: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _build_rag_context(user_input: str) -> str:
-    """
-    Retrieve relevant man page chunks and return a formatted context block.
-    Returns empty string if RAG is not needed or nothing useful is found.
-    """
     if not _needs_rag(user_input):
         return ""
 
@@ -208,15 +189,25 @@ def _build_rag_context(user_input: str) -> str:
 # Agent step
 # ---------------------------------------------------------------------------
 
-def agent(user_input: str) -> str:
+def agent(user_input: str) -> dict:
     """
     Single agent turn:
       1. Classify intent — inject RAG context only if tool-related.
       2. Ask the LLM → may return a tool-call JSON or plain text.
       3. If tool call: run the tool, feed result back, get final answer.
-      4. Return the final text to print.
+      4. Return a structured dict for both console and UI consumers:
+
+         {
+           "final": "The SHA256 hash is ...",   # plain-text reply to show the user
+           "steps": [                            # list of tool interactions (may be empty)
+               {"type": "tool_call",   "tool": "sha256sum", "args": ["/mnt/c/..."]},
+               {"type": "tool_output", "text": "abc123..."},
+           ]
+         }
     """
-    rag_context    = _build_rag_context(user_input)
+    steps = []
+
+    rag_context     = _build_rag_context(user_input)
     augmented_input = user_input + rag_context
 
     response = _query_llm(augmented_input)
@@ -225,17 +216,23 @@ def agent(user_input: str) -> str:
     try:
         data = json.loads(response.strip())
     except json.JSONDecodeError:
-        return response  # plain-language answer — return as-is
+        return {"final": response, "steps": steps}
 
     if not (isinstance(data, dict) and "tool" in data and "args" in data):
-        return response  # valid JSON but not a tool call
+        return {"final": response, "steps": steps}
 
     tool_name = data["tool"]
     args      = data["args"]
 
+    # Record the tool call
+    steps.append({"type": "tool_call", "tool": tool_name, "args": args})
+
     print(f"\n[Tool call] {tool_name}({', '.join(repr(a) for a in args)})\n")
 
     tool_output = run_tool(tool_name, args)
+
+    # Record the tool output
+    steps.append({"type": "tool_output", "text": str(tool_output)})
 
     followup = (
         f"The '{tool_name}' command has finished.\n\n"
@@ -243,11 +240,12 @@ def agent(user_input: str) -> str:
         "Summarise these results clearly for the analyst. Use MODE B."
     )
 
-    return _query_llm(followup)
+    final = _query_llm(followup)
+    return {"final": final, "steps": steps}
 
 
 # ---------------------------------------------------------------------------
-# Chat loop
+# Chat loop  (console — unchanged behaviour, just unpack the new return value)
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
@@ -268,5 +266,5 @@ if __name__ == "__main__":
         if user_input.lower() in {"exit", "quit"}:
             break
 
-        reply = agent(user_input)
-        print(f"\nAssistant: {reply}\n")
+        result = agent(user_input)
+        print(f"\nAssistant: {result['final']}\n")

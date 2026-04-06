@@ -1,0 +1,8 @@
+agent2/
+agent3/
+agent4/__pycache__/
+agent4/chroma_db/
+agent4/knowledge_base/
+__pycache__/
+Volatility/
+screenshots.zip
