@@ -17,24 +17,19 @@ Ask questions like:
 "Scan open ports on scanme.nmap.org"
 "Analyze this memory dump for processes"
 
-🛠 Supported Tools
-sha256sum — file hashing
-binwalk — firmware analysis
-cat — file inspection
-nmap — network scanning
-john — password cracking
-volatility3 — memory forensics
-🧠 LLM Integration
+## Currently Supported Tools
+- sha256sum — file hashing
+- binwalk — firmware analysis
+- cat — file inspection
+- nmap — network scanning
+- john — password cracking
+- volatility3 — memory forensics
 
-🏗 Architecture
-User Input
-   ↓
-LLM (intent understanding)
-   ↓
-Tool Call (JSON)
-   ↓
-Tool Execution
-   ↓
-LLM (result analysis)
-   ↓
-Final Answer
+## Architecture
+
+1. User Input
+2. LLM (intent understanding)
+3. Tool Call (JSON)
+4. Tool Execution
+5. LLM (result analysis)
+6. Final Answer
